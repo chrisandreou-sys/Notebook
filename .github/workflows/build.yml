@@ -37,12 +37,19 @@ jobs:
         run: cargo build --release
       - name: Package Debian and AppImage
         run: bash scripts/package-linux.sh 0.1.0
+      - name: Smoke-test release packages
+        run: |
+          mkdir -p /tmp/notebook-package-test
+          dpkg-deb -x dist/notebook-rs_0.1.0_amd64.deb /tmp/notebook-package-test
+          /tmp/notebook-package-test/usr/bin/notebook-rs --version
+          APPIMAGE_EXTRACT_AND_RUN=1 dist/NotebookRS_0.1.0_x86_64.AppImage --version
       - uses: actions/upload-artifact@v4
         with:
           name: notebook-rs-linux
           path: |
             dist/*
             Cargo.lock
+            src/
             target/release/notebook-rs
           retention-days: 14
 
@@ -78,3 +85,44 @@ jobs:
           name: notebook-rs-windows
           path: dist/*
           retention-days: 14
+
+  publish:
+    # Publishing is opt-in: push a verified release commit containing this marker.
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish v0.1.0]')
+    needs: [linux, windows]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: notebook-rs-linux
+          path: packages/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: notebook-rs-windows
+          path: packages/windows
+      - name: Record exact resolved dependencies and formatted sources
+        run: |
+          cp packages/linux/Cargo.lock Cargo.lock
+          cp -R packages/linux/src/. src/
+          git add Cargo.lock src/
+          if ! git diff --cached --quiet; then
+            git -c user.name='Notebook RS CI' -c user.email='actions@users.noreply.github.com' commit -m 'Lock and format v0.1.0 release'
+            git push origin HEAD:"$GITHUB_REF_NAME"
+          fi
+      - name: Publish verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          deb=$(find packages/linux -name '*.deb' -print -quit)
+          appimage=$(find packages/linux -name '*.AppImage' -print -quit)
+          exe=$(find packages/windows -name '*.exe' -print -quit)
+          test -n "$deb" && test -n "$appimage" && test -n "$exe"
+          gh release create v0.1.0 "$deb" "$appimage" "$exe" \
+            --target "$(git rev-parse HEAD)" \
+            --title 'Notebook RS v0.1.0' \
+            --notes-file RELEASE_NOTES.md

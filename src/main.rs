@@ -1,4 +1,6 @@
 mod ai;
+#[cfg(test)]
+mod integration;
 mod media;
 mod model;
 mod retrieval;
@@ -6,7 +8,12 @@ mod studio;
 mod style;
 mod web;
 
-use std::{env, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
+use std::{
+    env,
+    net::SocketAddr,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{bail, Context, Result};
 use model::Store;
@@ -21,8 +28,18 @@ async fn main() -> Result<()> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--host" => host = args.next().context("--host needs an address")?,
-            "--port" => port = args.next().context("--port needs a number")?.parse().context("invalid port")?,
-            "--data-dir" => data_dir = Some(PathBuf::from(args.next().context("--data-dir needs a path")?)),
+            "--port" => {
+                port = args
+                    .next()
+                    .context("--port needs a number")?
+                    .parse()
+                    .context("invalid port")?
+            }
+            "--data-dir" => {
+                data_dir = Some(PathBuf::from(
+                    args.next().context("--data-dir needs a path")?,
+                ))
+            }
             "--no-open" => no_open = true,
             "--help" | "-h" => {
                 println!("Notebook RS {}\n\nUsage: notebook-rs [--host 127.0.0.1] [--port 3040] [--data-dir PATH] [--no-open]\n\nBy default only this computer can connect. Set NOTEBOOK_DATA_DIR to override storage.", env!("CARGO_PKG_VERSION"));
@@ -65,10 +82,18 @@ async fn main() -> Result<()> {
 // Only the OS's existing browser launcher is invoked; no web assets or scripts are downloaded.
 fn open_browser(url: &str) -> std::io::Result<()> {
     #[cfg(target_os = "windows")]
-    { std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn()?; }
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()?;
+    }
     #[cfg(target_os = "macos")]
-    { std::process::Command::new("open").arg(url).spawn()?; }
+    {
+        std::process::Command::new("open").arg(url).spawn()?;
+    }
     #[cfg(all(unix, not(target_os = "macos")))]
-    { std::process::Command::new("xdg-open").arg(url).spawn()?; }
+    {
+        std::process::Command::new("xdg-open").arg(url).spawn()?;
+    }
     Ok(())
 }
