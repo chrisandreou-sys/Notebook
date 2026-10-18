@@ -23,7 +23,16 @@ jobs:
       - name: Format sources
         run: cargo fmt
       - name: Test
-        run: cargo test
+        run: |
+          set +e
+          cargo test --color never > build.log 2>&1
+          result=$?
+          cat build.log
+          if [ "$result" -ne 0 ]; then
+            escaped=$(tail -c 14000 build.log | sed 's/%/%25/g;s/\r/%0D/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Rust diagnostics::$escaped"
+          fi
+          exit "$result"
       - name: Release build
         run: cargo build --release
       - name: Package Debian and AppImage
@@ -46,7 +55,17 @@ jobs:
       - name: Resolve dependencies
         run: cargo generate-lockfile
       - name: Test
-        run: cargo test
+        shell: pwsh
+        run: |
+          cargo test --color never *> build.log
+          $result = $LASTEXITCODE
+          Get-Content build.log
+          if ($result -ne 0) {
+            $raw = Get-Content build.log -Raw
+            $escaped = $raw.Substring([Math]::Max(0, $raw.Length - 14000)).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Rust diagnostics::$escaped"
+          }
+          exit $result
       - name: Release build
         run: cargo build --release
       - name: Prepare executable
