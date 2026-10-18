@@ -270,7 +270,7 @@ pub fn extract_file(filename: &str, bytes: &[u8]) -> Result<String> {
         _ => bail!("Unsupported file type. Upload PDF, DOCX, PPTX, EPUB, TXT, Markdown, CSV, HTML, JSON or XML."),
     };
     if text.trim().is_empty() { bail!("No searchable text was found. Scanned PDFs require OCR before upload."); }
-    Ok(text)
+    Ok(text.trim().to_owned())
 }
 
 fn extract_zip_xml(bytes: &[u8], prefix: &str, multiple: bool) -> Result<String> {

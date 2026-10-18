@@ -73,6 +73,17 @@ pub fn speech_endpoint(settings: &Settings) -> Endpoint {
     if !settings.tts.base_url.trim().is_empty() {
         let mut endpoint = settings.tts.clone();
         if endpoint.model.trim().is_empty() { endpoint.model = "tts-1".into(); }
+        // Reuse a chat key only when the speech base URL is the *same* as the
+        // configured chat base URL. Never forward a credential to a different
+        // provider just because the optional speech key was left blank.
+        if endpoint.api_key.is_empty() {
+            let speech_url = endpoint.base_url.trim_end_matches('/');
+            if speech_url == settings.primary.base_url.trim_end_matches('/') {
+                endpoint.api_key = settings.primary.api_key.clone();
+            } else if speech_url == settings.secondary.base_url.trim_end_matches('/') {
+                endpoint.api_key = settings.secondary.api_key.clone();
+            }
+        }
         endpoint
     } else {
         let mut endpoint = if settings.mode == "local" { settings.secondary.clone() } else { settings.primary.clone() };
@@ -119,6 +130,16 @@ mod tests {
         assert!(endpoint_url(&endpoint, "chat/completions").is_err());
         let endpoint = Settings::default().primary;
         assert!(endpoint_url(&endpoint, "chat/completions").is_err());
+    }
+
+    #[test]
+    fn speech_key_is_reused_only_for_the_same_endpoint() {
+        let mut settings = Settings::default();
+        settings.primary.api_key = "private-key".into();
+        settings.tts.base_url = settings.primary.base_url.clone();
+        assert_eq!(speech_endpoint(&settings).api_key, "private-key");
+        settings.tts.base_url = "https://other-provider.example/v1".into();
+        assert!(speech_endpoint(&settings).api_key.is_empty());
     }
 
     #[test]

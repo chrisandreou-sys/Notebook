@@ -1,6 +1,6 @@
 use std::{fs, path::Path, sync::{Arc, Mutex}};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Multipart, Path as RoutePath, Query, State},
