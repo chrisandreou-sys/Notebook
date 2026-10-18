@@ -1,4 +1,6 @@
 mod ai;
+#[cfg(test)]
+mod integration;
 mod media;
 mod model;
 mod retrieval;

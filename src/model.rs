@@ -396,6 +396,17 @@ mod tests {
     }
 
     #[test]
+    fn docx_upload_extracts_paragraphs() {
+        use std::io::Write;
+        let buffer = Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(buffer);
+        writer.start_file("word/document.xml", zip::write::FileOptions::default()).unwrap();
+        writer.write_all(b"<w:document><w:p><w:r><w:t>First</w:t></w:r></w:p><w:p><w:t>Second</w:t></w:p></w:document>").unwrap();
+        let bytes = writer.finish().unwrap().into_inner();
+        assert_eq!(extract_file("notes.docx", &bytes).unwrap(), "First\nSecond");
+    }
+
+    #[test]
     fn empty_source_is_rejected() {
         assert!(source_from_text("empty", "  \n", None).is_err());
     }
