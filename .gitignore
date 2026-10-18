@@ -1,0 +1,11 @@
+# Rust build products
+/target/
+
+# Release packages and downloaded CI artifacts
+/dist/
+/AppDir/
+
+# Never commit private local notebooks or API settings
+/notebook-rs-data/
+/data/
+*.log

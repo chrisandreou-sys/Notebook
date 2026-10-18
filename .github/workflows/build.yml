@@ -1,0 +1,61 @@
+name: Build and test Notebook RS
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Resolve dependencies
+        run: cargo generate-lockfile
+      - name: Format sources
+        run: cargo fmt
+      - name: Test
+        run: cargo test
+      - name: Release build
+        run: cargo build --release
+      - name: Package Debian and AppImage
+        run: bash scripts/package-linux.sh 0.1.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notebook-rs-linux
+          path: |
+            dist/*
+            Cargo.lock
+            target/release/notebook-rs
+          retention-days: 14
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Resolve dependencies
+        run: cargo generate-lockfile
+      - name: Test
+        run: cargo test
+      - name: Release build
+        run: cargo build --release
+      - name: Prepare executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/notebook-rs.exe dist/notebook-rs_0.1.0_windows_x86_64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notebook-rs-windows
+          path: dist/*
+          retention-days: 14
