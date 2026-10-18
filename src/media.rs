@@ -287,7 +287,7 @@ fn draw_slide(width: u32, height: u32, slide: &VideoSlide, index: usize, total: 
     y += 17;
     for bullet in slide.bullets.iter().take(4) {
         let lines = wrap(font, bullet, 23.0, 762.0);
-        rect(&mut image, 63, y + 12, 7, 7, Rgb([114, 226, 205]));
+        rect(&mut image, 63, (y + 12) as u32, 7, 7, Rgb([114, 226, 205]));
         for line in lines.into_iter().take(2) {
             draw_text(&mut image, font, &line, 87, y, 23.0, Rgb([224, 236, 245]));
             y += 32;

@@ -323,7 +323,7 @@ pub fn strip_markup(xml: &str) -> String {
             let clean = name.trim_start_matches('/');
             let simple = clean.rsplit(':').next().unwrap_or(clean).to_ascii_lowercase();
             if simple == "script" || simple == "style" {
-                if closing { ignore = None; } else { ignore = Some(simple); }
+                if closing { ignore = None; } else { ignore = Some(simple.clone()); }
             }
             if ignore.is_none() && (closing && matches!(simple.as_str(), "p" | "div" | "h1" | "h2" | "h3" | "li" | "tr") || matches!(simple.as_str(), "br" | "tab")) {
                 result.push('\n');

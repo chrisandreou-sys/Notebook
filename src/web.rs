@@ -157,7 +157,7 @@ async fn notebook_page(State(state): State<Arc<AppState>>, RoutePath(id): RouteP
         (store.notebook(&id).cloned().ok_or_else(|| WebError::missing("Notebook"))?,
             !store.db.settings.primary.api_key.is_empty() || store.db.settings.mode != "cloud")
     };
-    let source_rows = if notebook.sources.is_empty() {
+    let source_rows: String = if notebook.sources.is_empty() {
         "<div class=\"rail-empty\"><span>◫</span><p>No sources yet. Upload documents or paste text below.</p></div>".into()
     } else {
         notebook.sources.iter().map(|source| format!("<a class=\"source-row\" href=\"/notebooks/{id}/sources/{}\"><span class=\"file-icon\">{}</span><span class=\"source-meta\"><strong>{}</strong><small>{} passages{}</small></span><span class=\"source-next\">›</span></a>", source.id, if source.upload_file.is_some() { "▤" } else { "≡" }, h(&source.name), source.chunks.len(), if source.truncated { " · preview truncated" } else { "" })).collect()
